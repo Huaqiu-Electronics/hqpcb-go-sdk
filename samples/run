@@ -1,0 +1,20 @@
+#!/bin/bash
+# 在 sdk/go/pcb 模块下跑 numbered sample。
+# 用法：
+#   ./run 01_hello_ping
+#   ./run 10_objects_list_doget hqpcb-svc
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+MOD="$(cd "$HERE/.." && pwd)"
+NAME="${1:-}"
+if [[ -z "$NAME" ]]; then
+  echo "usage: ./run <01_hello_ping|...> [args...]" >&2
+  exit 2
+fi
+shift || true
+if [[ ! -d "$HERE/$NAME" ]]; then
+  echo "missing sample: $HERE/$NAME" >&2
+  exit 1
+fi
+cd "$MOD"
+exec go run "./samples/$NAME" "$@"
