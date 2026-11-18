@@ -19,6 +19,11 @@ func ScriptGoRun(path string) (string, error) {
 	return CmdletLine("script.go.run", KvToken("path", path))
 }
 
+// ScriptGoLoad 是 script.go.run / go-load 的 Guest 侧别名。
+func ScriptGoLoad(path string) (string, error) {
+	return CmdletLine("go-load", KvToken("path", path))
+}
+
 // ScriptGoInfo 查询宿主 TinyGo / Wasmtime / Guest SDK 诊断信息。
 func ScriptGoInfo() (string, error) {
 	return Cmdlet("script.go.info")
