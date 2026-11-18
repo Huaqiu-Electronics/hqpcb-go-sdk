@@ -13,6 +13,7 @@
 package hqeda
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -74,9 +75,15 @@ func callFor(op string, args map[string]interface{}, maxWait time.Duration) (str
 			time.Sleep(10 * time.Millisecond)
 			continue
 		}
+		// 空/半残响应：等宿主 *.part rename 完成后再解析。
+		if len(bytes.TrimSpace(data)) == 0 {
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
 		var resp hostResp
 		if err := json.Unmarshal(data, &resp); err != nil {
-			return "", err
+			time.Sleep(10 * time.Millisecond)
+			continue
 		}
 		_ = os.Remove(reqPath)
 		_ = os.Remove(respPath)
