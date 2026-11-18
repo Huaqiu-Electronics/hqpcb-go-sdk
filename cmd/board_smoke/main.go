@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk"
+	hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
 )
 
 func main() {
@@ -43,14 +43,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	cli := pcb.NewFlightIPC()
+	cli := hqeda.NewFlightIPC()
 	if err := cli.Connect(pipe, false); err != nil {
 		fmt.Fprintln(os.Stderr, "connect:", err)
 		os.Exit(1)
 	}
 	defer cli.Disconnect()
 
-	board, err := pcb.OpenBoard(pcb.BindFlightIPC(cli), abs, pcb.BindFlightDoGet(cli))
+	board, err := hqeda.OpenBoard(hqeda.BindFlightIPC(cli), abs, hqeda.BindFlightDoGet(cli))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "open:", err)
 		os.Exit(1)
@@ -67,5 +67,5 @@ func main() {
 	}
 	defer tbl.Release()
 	fmt.Printf("OK pipe=%s path=%s tracks=%d doget_rows=%d ver=%d.%d\n",
-		cli.Pipe(), board.Path, len(tracks), tbl.NumRows(), pcb.VerMajor, pcb.VerMinor)
+		cli.Pipe(), board.Path, len(tracks), tbl.NumRows(), hqeda.VerMajor, hqeda.VerMinor)
 }

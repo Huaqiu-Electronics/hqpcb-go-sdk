@@ -1,4 +1,4 @@
-package pcb
+package hqeda
 
 // ScriptGoCompile 编译 TinyGo 脚本为 WASI .wasm。
 //

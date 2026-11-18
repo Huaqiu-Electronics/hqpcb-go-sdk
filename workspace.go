@@ -1,4 +1,4 @@
-package pcb
+package hqeda
 
 // WorkspaceList 列出运行时工作区（对齐 cmdlet workspace.list）。
 func WorkspaceList() (string, error) {

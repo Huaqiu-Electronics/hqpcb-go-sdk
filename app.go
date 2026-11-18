@@ -1,4 +1,4 @@
-package pcb
+package hqeda
 
 // Plugins 列出已装载插件（对齐 cmdlet plugins）。
 func Plugins() (string, error) {

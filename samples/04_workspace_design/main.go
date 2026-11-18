@@ -6,19 +6,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk"
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk/samples/sampleutil"
+	hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
+	"github.com/Huaqiu-Electronics/hqpcb-go-sdk/samples/helper"
 )
 
 func main() {
-	pipe, gui, rest := sampleutil.ResolvePipe(os.Args)
-	cli := pcb.NewFlightIPC()
+	pipe, gui, rest := helper.ResolvePipe(os.Args)
+	cli := hqeda.NewClientFactory()
 	if err := cli.Connect(pipe, gui); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	defer cli.Disconnect()
-	sampleutil.RequireWsDesign(cli.Pipe(), cli.PeerRole(), cli.PeerCaps().Workspace, cli.PeerCaps().Design)
+	helper.CheckEnv(cli.Pipe(), cli.PeerRole(), cli.PeerCaps().Workspace, cli.PeerCaps().Design)
 	caps := cli.PeerCaps()
 	if !caps.Workspace || !caps.Design {
 		fmt.Fprintf(os.Stderr, "peer lacks workspace/design (pipe=%s role=%s); use --role service\n",

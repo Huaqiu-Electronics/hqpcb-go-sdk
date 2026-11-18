@@ -2,7 +2,7 @@
 //
 // package=hq.pcb.api ver=1.9
 // kicad_ref=https://docs.kicad.org/doxygen-python-6.0/namespacepcbnew.html
-package pcb
+package hqeda
 
 import (
 	"encoding/json"

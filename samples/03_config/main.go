@@ -5,12 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk"
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk/samples/sampleutil"
+	hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
+	"github.com/Huaqiu-Electronics/hqpcb-go-sdk/samples/helper"
 )
 
 func main() {
-	pipe, gui, rest := sampleutil.ResolvePipe(os.Args)
+	pipe, gui, rest := helper.ResolvePipe(os.Args)
 	key, value := "sample.theme", "dark"
 	if len(rest) > 0 {
 		key = rest[0]
@@ -18,7 +18,7 @@ func main() {
 	if len(rest) > 1 {
 		value = rest[1]
 	}
-	cli := pcb.NewFlightIPC()
+	cli := hqeda.NewClientFactory()
 	if err := cli.Connect(pipe, gui); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

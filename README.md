@@ -11,24 +11,32 @@ go get github.com/Huaqiu-Electronics/hqpcb-go-sdk@latest
 ## Import
 
 ```go
-import "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
+import hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
 
 func main() {
-    pcb.Log("hello")
-    out, err := pcb.WorkspaceList()
+    // Guest 脚本桥
+    hqeda.Log("hello")
+    out, err := hqeda.WorkspaceList()
     _ = out
     _ = err
+
+    // 本机 Flight（产品入口）
+    cli := hqeda.NewClientFactory()
+    _ = cli.Connect("", false) // hqpcb-svc
+    defer cli.Disconnect()
+    board, _ := cli.OpenBoard("/path/board.hqpcb")
+    _ = board
 }
 ```
 
-包名仍为 `pcb`（与历史 `hq.pcb/sdk/pcb` 一致）；模块路径已迁到本仓库。
+包名为 `hqeda`；模块路径仍为 `github.com/Huaqiu-Electronics/hqpcb-go-sdk`（子模块目录 `sdk/go/hqeda`）。
 
 ## Guest 脚本（PCB_V5 宿主）
 
-桌面应用通过 `script.go.*` 编译运行时，会把 `go.mod` 的 `require`/`replace` 指到捆绑的 `go-sdk/pcb`（本仓库内容的拷贝）。用户源码请使用：
+桌面应用通过 `script.go.*` 编译运行时，会把 `go.mod` 的 `require`/`replace` 指到捆绑的 `go-sdk/hqeda`（本仓库内容的拷贝）。用户源码请使用：
 
 ```go
-import "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
+import hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
 ```
 
 ## 文档

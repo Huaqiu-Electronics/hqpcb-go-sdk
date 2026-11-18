@@ -2,7 +2,7 @@
 //
 // Deprecated: P6d 起请改用 FlightIPC（flight_IPC.go）与生成 API（pcb_api_gen.go）。
 // 本文件仅保留兼容；新冒烟脚本 IPC_p6d_smoke.sh 不再调用 Streaming。
-package pcb
+package hqeda
 
 import (
 	"bytes"

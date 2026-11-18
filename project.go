@@ -1,4 +1,4 @@
-package pcb
+package hqeda
 
 // ProjectOpenOpts 控制 project.open 的可选开关。
 type ProjectOpenOpts struct {

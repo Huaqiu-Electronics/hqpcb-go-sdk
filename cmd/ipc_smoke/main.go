@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk"
+	hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 		}
 		pipe = arg
 	}
-	c := pcb.NewFlightIPC()
+	c := hqeda.NewFlightIPC()
 	if err := c.Connect(pipe, false); err != nil {
 		fmt.Fprintln(os.Stderr, "connect:", err)
 		os.Exit(1)

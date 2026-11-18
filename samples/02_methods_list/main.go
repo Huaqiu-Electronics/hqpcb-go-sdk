@@ -5,13 +5,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk"
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk/samples/sampleutil"
+	hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
+	"github.com/Huaqiu-Electronics/hqpcb-go-sdk/samples/helper"
 )
 
 func main() {
-	pipe, gui, _ := sampleutil.ResolvePipe(os.Args)
-	cli := pcb.NewFlightIPC()
+	pipe, gui, _ := helper.ResolvePipe(os.Args)
+	cli := hqeda.NewClientFactory()
 	if err := cli.Connect(pipe, gui); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

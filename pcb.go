@@ -1,4 +1,4 @@
-// Package pcb 是 PCB_V5 TinyGo/WASI 脚本的宿主桥接 SDK。
+// Package hqeda 是 PCB_V5 TinyGo/WASI 脚本的宿主桥接 SDK。
 //
 // 通过共享目录上的 JSON 请求/响应与桌面宿主通信；不直接访问设计内核。
 // 环境变量 PCB_HOST_DIR 指向宿主创建的临时目录（含 req/ 与 resp/）。
@@ -10,7 +10,7 @@
 // 常用 runtime 表：QueryPlugins / QueryLayers / QueryViewOptions / QueryCmdletHist /
 // QueryCmdHist / QueryConfigItems（见 query_rt.go）；
 // 命令行拼装：EncodeValue / KvToken / Line（见 line.go），对齐宿主 CmdletKvArgs。
-package pcb
+package hqeda
 
 import (
 	"encoding/json"

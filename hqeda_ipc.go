@@ -8,7 +8,7 @@
 // 不传 URI、不使用数字 TCP 端口。环境变量：
 //
 //	PCB_IPC_SERVICE_PIPE / PCB_IPC_GUI_PIPE — 覆盖默认逻辑名。
-package pcb
+package hqeda
 
 import (
 	"context"
@@ -110,7 +110,9 @@ func ParseCapsText(text string) FlightCaps {
 	}
 }
 
-// NewFlightIPC 创建未连接的客户端。
+// NewFlightIPC 创建未连接的低层 Flight 客户端。
+//
+// 应用代码请优先使用 NewClientFactory；本函数保留为逃生舱 / 兼容旧样例。
 func NewFlightIPC() *FlightIPC {
 	return &FlightIPC{peerCaps: FlightCaps{VerMajor: 1, Raw: map[string]string{}}}
 }
@@ -256,6 +258,21 @@ func (c *FlightIPC) WsOpen(path string) (string, error) {
 	return c.DoAction("ws.open", path)
 }
 
+// WsList 工作区快照。
+func (c *FlightIPC) WsList() (string, error) {
+	return c.DoAction("ws.list", "")
+}
+
+// WsSwitch 切换当前工作区。
+func (c *FlightIPC) WsSwitch(id string) (string, error) {
+	return c.DoAction("ws.switch", id)
+}
+
+// WsClose 关闭工作区。
+func (c *FlightIPC) WsClose(id string) (string, error) {
+	return c.DoAction("ws.close", id)
+}
+
 // WsGen 工作区代数。
 func (c *FlightIPC) WsGen() (int64, error) {
 	text, err := c.DoAction("ws.gen", "")
@@ -269,6 +286,11 @@ func (c *FlightIPC) WsGen() (int64, error) {
 		}
 	}
 	return 0, fmt.Errorf("bad ws.gen: %q", text)
+}
+
+// DesignMeta 设计元数据快照。
+func (c *FlightIPC) DesignMeta() (string, error) {
+	return c.DoAction("design.meta", "")
 }
 
 // DesignLease 获取写租约。

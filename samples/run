@@ -1,5 +1,5 @@
 #!/bin/bash
-# 在 sdk/go/pcb 模块下跑 numbered sample。
+# 在 sdk/go/hqeda 模块下跑 numbered sample。
 # 用法：
 #   ./run 01_hello_ping
 #   ./run 10_objects_list_doget hqpcb-svc

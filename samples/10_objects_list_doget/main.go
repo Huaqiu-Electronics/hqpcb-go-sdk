@@ -8,8 +8,8 @@ import (
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
 
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk"
-	"github.com/Huaqiu-Electronics/hqpcb-go-sdk/samples/sampleutil"
+	hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
+	"github.com/Huaqiu-Electronics/hqpcb-go-sdk/samples/helper"
 )
 
 func colNames(tbl arrow.Table) []string {
@@ -54,25 +54,25 @@ func payload0(tbl arrow.Table) string {
 }
 
 func main() {
-	pipe, gui, rest := sampleutil.ResolvePipe(os.Args)
+	pipe, gui, rest := helper.ResolvePipe(os.Args)
 	arg := ""
 	if len(rest) > 0 {
 		arg = rest[0]
 	}
-	path, err := sampleutil.BoardPath(arg)
+	path, err := helper.BoardPath(arg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	cli := pcb.NewFlightIPC()
+	cli := hqeda.NewClientFactory()
 	if err := cli.Connect(pipe, gui); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	defer cli.Disconnect()
-	sampleutil.RequireWsDesign(cli.Pipe(), cli.PeerRole(), cli.PeerCaps().Workspace, cli.PeerCaps().Design)
+	helper.CheckEnv(cli.Pipe(), cli.PeerRole(), cli.PeerCaps().Workspace, cli.PeerCaps().Design)
 	fmt.Printf("pipe=%s\n", cli.Pipe())
-	board, err := pcb.OpenBoard(pcb.BindFlightIPC(cli), path, pcb.BindFlightDoGet(cli))
+	board, err := cli.OpenBoard(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

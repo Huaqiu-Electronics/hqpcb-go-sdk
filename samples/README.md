@@ -20,7 +20,7 @@ cmake --build cmake-build-release --target pcb_IPC_skel_serve
 ## 运行
 
 ```bash
-cd sdk/go/pcb/samples
+cd sdk/go/hqeda/samples
 ./run 01_hello_ping
 ./run 01_hello_ping gui
 ./run 10_objects_list_doget
