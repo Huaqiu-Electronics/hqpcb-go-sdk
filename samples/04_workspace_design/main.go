@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
@@ -11,9 +10,9 @@ import (
 )
 
 func main() {
-	pipe, gui, rest := helper.ResolvePipe(os.Args)
-	cli := hqeda.NewClientFactory()
-	if err := cli.Connect(pipe, gui); err != nil {
+	_, gui, rest := helper.ResolvePipe(os.Args)
+	cli, err := hqeda.NewConnection(gui)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -25,17 +24,14 @@ func main() {
 			cli.Pipe(), cli.PeerRole())
 		os.Exit(1)
 	}
-	var board string
+	boardArg := ""
 	if len(rest) > 0 {
-		abs, err := filepath.Abs(rest[0])
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		board = abs
-	} else {
-		board = filepath.Join(os.TempDir(), "pcb_sdk_sample_board.hqpcb")
-		_ = os.WriteFile(board, []byte("sdk-go-sample"), 0o644)
+		boardArg = rest[0]
+	}
+	board, err := helper.BoardPath(boardArg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 	fmt.Printf("pipe=%s\n", cli.Pipe())
 	fmt.Println("--- ws.open ---")

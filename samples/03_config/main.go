@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	pipe, gui, rest := helper.ResolvePipe(os.Args)
+	_, gui, rest := helper.ResolvePipe(os.Args)
 	key, value := "sample.theme", "dark"
 	if len(rest) > 0 {
 		key = rest[0]
@@ -18,8 +18,8 @@ func main() {
 	if len(rest) > 1 {
 		value = rest[1]
 	}
-	cli := hqeda.NewClientFactory()
-	if err := cli.Connect(pipe, gui); err != nil {
+	cli, err := hqeda.NewConnection(gui)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

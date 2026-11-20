@@ -5,25 +5,37 @@ package hqeda
 import (
 	"fmt"
 	"strings"
+	"time"
 )
 
 // ClientFactory 是 Flight IPC 的推荐产品入口（封装底层 FlightIPC）。
 //
 // 典型用法：
 //
-//	cli := hqeda.NewClientFactory()
-//	if err := cli.Connect("", false); err != nil { ... }
+//	cli, err := hqeda.NewConnection(true) // GUI；false 为后台服务
+//	if err != nil { ... }
 //	defer cli.Disconnect()
 //	board, err := cli.OpenBoard("/path/board.hqpcb")
 //
-// 低层逃生舱：NewFlightIPC / BindFlightIPC；应用代码优先用本类型。
+// 自定义管道名：NewClientFactory + Connect(pipe, gui)。
+// 低层逃生舱：NewFlightIPC / BindFlightIPC。
 type ClientFactory struct {
 	*FlightIPC
 }
 
-// NewClientFactory 创建未连接的客户端工厂（产品默认构造入口）。
+// NewClientFactory 创建未连接的客户端工厂（需再调用 Connect）。
 func NewClientFactory() *ClientFactory {
 	return &ClientFactory{FlightIPC: NewFlightIPC()}
+}
+
+// NewConnection 构造并连接默认端点，返回已就绪的 ClientFactory。
+// gui 为 true 连 Interactive（hqpcb-gui）；false 连后台服务（hqpcb-svc）。
+func NewConnection(gui bool) (*ClientFactory, error) {
+	cli := NewClientFactory()
+	if err := cli.Connect("", gui); err != nil {
+		return nil, err
+	}
+	return cli, nil
 }
 
 // ConnectService 连接后台服务（默认逻辑名 hqpcb-svc）。
@@ -76,4 +88,31 @@ func (c *ClientFactory) WriteProps(props map[string]string, token string) (map[s
 // WriteConfig 写进程配置并读回。
 func (c *ClientFactory) WriteConfig(key, value string) (string, error) {
 	return WriteConfig(c.FlightIPC, key, value)
+}
+
+// Open 打开工程（Flight ws.open；对齐脚本侧 open）。
+func (c *ClientFactory) Open(path string) (string, error) {
+	if c == nil || c.FlightIPC == nil {
+		return "", fmt.Errorf("nil ClientFactory")
+	}
+	return c.WsOpen(path)
+}
+
+// OpenAndWait 打开工程；Flight 进程外无场景跟随 cmdlet，等价于 Open。
+func (c *ClientFactory) OpenAndWait(path string, timeoutMs int) (string, error) {
+	_ = timeoutMs
+	return c.Open(path)
+}
+
+// SleepMs 本机停顿（Flight 进程外无宿主 sleep.ms；对齐脚本侧方法名）。
+// ms < 0 时按 0 处理。
+func (c *ClientFactory) SleepMs(ms int) error {
+	if c == nil {
+		return fmt.Errorf("nil ClientFactory")
+	}
+	if ms < 0 {
+		ms = 0
+	}
+	time.Sleep(time.Duration(ms) * time.Millisecond)
+	return nil
 }

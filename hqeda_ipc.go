@@ -114,7 +114,7 @@ func ParseCapsText(text string) FlightCaps {
 
 // NewFlightIPC 创建未连接的低层 Flight 客户端。
 //
-// 应用代码请优先使用 NewClientFactory；本函数保留为逃生舱 / 兼容旧样例。
+// 应用代码请优先使用 NewConnection；本函数保留为逃生舱 / 兼容旧样例。
 func NewFlightIPC() *FlightIPC {
 	return &FlightIPC{peerCaps: FlightCaps{VerMajor: 1, Raw: map[string]string{}}}
 }

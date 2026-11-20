@@ -20,9 +20,11 @@ func main() {
     _ = out
     _ = err
 
-    // 本机 Flight（产品入口）
-    cli := hqeda.NewClientFactory()
-    _ = cli.Connect("", false) // hqpcb-svc
+    // 本机 Flight（产品入口；false=后台 hqpcb-svc，true=GUI）
+    cli, err := hqeda.NewConnection(false)
+    if err != nil {
+        panic(err)
+    }
     defer cli.Disconnect()
     board, _ := cli.OpenBoard("/path/board.hqpcb")
     _ = board

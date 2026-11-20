@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	pipe, gui, rest := helper.ResolvePipe(os.Args)
+	_, gui, rest := helper.ResolvePipe(os.Args)
 	arg := ""
 	if len(rest) > 0 {
 		arg = rest[0]
@@ -19,8 +19,8 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	cli := hqeda.NewClientFactory()
-	if err := cli.Connect(pipe, gui); err != nil {
+	cli, err := hqeda.NewConnection(gui)
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

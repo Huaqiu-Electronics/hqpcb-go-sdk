@@ -24,7 +24,7 @@ cd sdk/go/hqeda/samples
 ./run 01_hello_ping
 ./run 01_hello_ping gui
 ./run 10_objects_list_doget
-./run 06_board_nets_vias headless /path/to/board.hqpcb
+./run 06_board_nets_vias headless /path/to/board.hqpcbx
 PCB_IPC_ENDPOINT=gui ./run 01_hello_ping
 ```
 
@@ -41,4 +41,4 @@ PCB_IPC_ENDPOINT=gui ./run 01_hello_ping
 | `09_board_design_settings` | `DesignSettings` / `NetClasses` / … |
 | `10_objects_list_doget` | DoGet `objects.list` / `query.table` |
 
-默认板：`sdk/python/samples/complex_hierarchy.hqpcb`。
+默认板：`Samples/Boards/hqpcbx/04_all_basics.hqpcbx`。

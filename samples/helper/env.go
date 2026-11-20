@@ -11,6 +11,21 @@ import (
 	hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
 )
 
+// BoardPresets 示例名 → Samples/Boards/hqpcbx 文件名。
+var BoardPresets = map[string]string{
+	"tracks":      "01_tracks_vias.hqpcbx",
+	"arc_tracks":  "05_arc_tracks_vias.hqpcbx",
+	"components":  "02_components_pads.hqpcbx",
+	"zones":       "03_zones_graphics.hqpcbx",
+	"all_basics":  "04_all_basics.hqpcbx",
+	"keepout":     "06_keepout_netclass.hqpcbx",
+	"custom_pads": "07_custom_pads_curves.hqpcbx",
+	"blind":       "08_blind_bottom.hqpcbx",
+	"slots":       "09_slots_thermals.hqpcbx",
+	"outline":     "10_outline_arcs.hqpcbx",
+	"diffpair":    "11_diffpair_route.hqpcbx",
+}
+
 // ResolveEndpoint 委托 SDK；失败时打印并 os.Exit(2)。
 func ResolveEndpoint(argv []string) hqeda.Endpoint {
 	ep, err := hqeda.ResolveEndpoint(argv)
@@ -27,24 +42,27 @@ func ResolvePipe(argv []string) (pipe string, gui bool, rest []string) {
 	return ep.Pipe, ep.Gui, ep.Rest
 }
 
-// DefaultBoardPath 优先 python/samples 旁 complex_hierarchy，再仓库 samples/。
-func DefaultBoardPath() string {
+func repoRoot() string {
 	_, file, _, ok := runtime.Caller(0)
-	root := "."
-	if ok {
-		root = filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", ".."))
+	if !ok {
+		return "."
 	}
-	cands := []string{
-		filepath.Join(root, "sdk", "python", "samples", "complex_hierarchy.hqpcb"),
-		filepath.Join(root, "samples", "complex_hierarchy.hqpcb"),
+	// helper -> samples -> hqeda -> go -> sdk -> repo
+	return filepath.Clean(filepath.Join(filepath.Dir(file), "..", "..", "..", "..", ".."))
+}
+
+// BoardsDir 返回 Samples/Boards/hqpcbx。
+func BoardsDir() string {
+	return filepath.Join(repoRoot(), "Samples", "Boards", "hqpcbx")
+}
+
+// DefaultBoardPath 默认综合小板（文本工程）。
+func DefaultBoardPath() string {
+	p := filepath.Join(BoardsDir(), BoardPresets["all_basics"])
+	if abs, err := filepath.Abs(p); err == nil {
+		return abs
 	}
-	for _, c := range cands {
-		if st, e := os.Stat(c); e == nil && !st.IsDir() {
-			abs, _ := filepath.Abs(c)
-			return abs
-		}
-	}
-	return cands[0]
+	return p
 }
 
 // CheckEnv 在 board/ws 样例入口检查对端 workspace+design 能力。
@@ -59,14 +77,20 @@ func CheckEnv(pipe, role string, workspace, design bool) {
 	os.Exit(1)
 }
 
-// BoardPath 显式路径或默认板。
+// BoardPath 显式路径或默认板（可传预设名如 tracks / all_basics）。
 func BoardPath(arg string) (string, error) {
 	if strings.TrimSpace(arg) == "" {
 		p := DefaultBoardPath()
 		if st, err := os.Stat(p); err != nil || st.IsDir() {
-			return "", fmt.Errorf("board not found: %s", p)
+			return "", fmt.Errorf("board not found: %s (run Samples/Boards/convert_to_hqpcb.sh --hqpcbx-only)", p)
 		}
 		return p, nil
+	}
+	if name, ok := BoardPresets[arg]; ok {
+		p := filepath.Join(BoardsDir(), name)
+		if st, err := os.Stat(p); err == nil && !st.IsDir() {
+			return p, nil
+		}
 	}
 	abs, err := filepath.Abs(arg)
 	if err != nil {

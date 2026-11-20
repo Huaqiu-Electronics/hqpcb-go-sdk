@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -106,6 +107,104 @@ func Log(msg string) {
 // Cmdlet 执行一条宿主 cmdlet 命令行，返回结果文本。
 func Cmdlet(line string) (string, error) {
 	return call("cmdlet", map[string]interface{}{"line": line})
+}
+
+// ResolveFile 经宿主 path.resolve 把相对路径解析为已存在绝对路径。
+func ResolveFile(rel string) (string, error) {
+	rel = strings.TrimSpace(strings.ReplaceAll(rel, "\\", "/"))
+	if rel == "" {
+		return "", fmt.Errorf("empty path")
+	}
+	out, err := CmdletLine("path.resolve", KvToken("path", rel))
+	if err != nil {
+		return "", err
+	}
+	out = strings.TrimSpace(out)
+	if out == "" {
+		return "", fmt.Errorf("path not found: %s", rel)
+	}
+	return out, nil
+}
+
+// SleepMs 经宿主 sleep.ms 停顿（会 processEvents，供 Route 等交互脚本跟手刷新）。
+// ms < 0 时按 0 处理。
+func SleepMs(ms int) error {
+	if ms < 0 {
+		ms = 0
+	}
+	_, err := Cmdlet(fmt.Sprintf("sleep.ms %d", ms))
+	return err
+}
+
+// SelectLayer 经宿主 layer_schema.select 切换当前层（层名或层 id）。
+func SelectLayer(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("empty layer name")
+	}
+	_, err := CmdletLine("layer_schema.select", name)
+	return err
+}
+
+// WaitOpenFollow 等待场景跟随打开完成（rasternext.wait_open_follow）。
+// timeoutMs < 0 时按 0 处理。
+func WaitOpenFollow(timeoutMs int) error {
+	if timeoutMs < 0 {
+		timeoutMs = 0
+	}
+	_, err := Cmdlet(fmt.Sprintf("rasternext.wait_open_follow %d", timeoutMs))
+	return err
+}
+
+// ZoomAll 执行 zoomall（全图适配）。
+func ZoomAll() error {
+	_, err := Cmdlet("zoomall")
+	return err
+}
+
+// StartAction 启动命名工具动作（action.start <name>）。
+func StartAction(name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("empty action name")
+	}
+	_, err := CmdletLine("action.start", name)
+	return err
+}
+
+// CurrentAction 查询当前动作名（action.current）。
+func CurrentAction() (string, error) {
+	return Cmdlet("action.current")
+}
+
+// MouseMoveEx 直线插值跟手（action.input move-line）。
+func MouseMoveEx(x0, y0, x1, y1 float64, steps int) error {
+	_, err := Cmdlet(fmt.Sprintf("action.input move-line %g %g %g %g %d", x0, y0, x1, y1, steps))
+	return err
+}
+
+// MouseMove 移动指针到纸面坐标（action.input move）。
+func MouseMove(x, y float64) error {
+	_, err := Cmdlet(fmt.Sprintf("action.input move %g %g", x, y))
+	return err
+}
+
+// MouseClick 单击纸面坐标（action.input click）。
+func MouseClick(x, y float64) error {
+	_, err := Cmdlet(fmt.Sprintf("action.input click %g %g", x, y))
+	return err
+}
+
+// MouseDBClick 双击纸面坐标（action.input dbclick）。
+func MouseDBClick(x, y float64) error {
+	_, err := Cmdlet(fmt.Sprintf("action.input dbclick %g %g", x, y))
+	return err
+}
+
+// CancelAction 取消当前工具动作（action.cancel）。
+func CancelAction() error {
+	_, err := Cmdlet("action.cancel")
+	return err
 }
 
 // Query 执行一条宿主 SQL（与 runtime.query / telnet 同源策略），返回 JSON 文本。

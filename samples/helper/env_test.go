@@ -12,7 +12,7 @@ func TestResolvePipe(t *testing.T) {
 		gui  bool
 		rest int
 	}{
-		{[]string{"p", "headless", "a.hqpcb"}, false, 1},
+		{[]string{"p", "headless", "a.hqpcbx"}, false, 1},
 		{[]string{"p", "gui"}, true, 0},
 		{[]string{"p", "hqpcb-svc"}, false, 0},
 	}
