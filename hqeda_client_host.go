@@ -292,12 +292,28 @@ func (c *ClientFactory) ZoomAll() error {
 	return ZoomAll()
 }
 
+// Save 保存当前工程（对齐 JS save / Python save；project.save）。
+func (c *ClientFactory) Save() (string, error) {
+	if err := c.ensure(); err != nil {
+		return "", err
+	}
+	return ProjectSave()
+}
+
 // StartAction 启动命名工具动作（对齐 JS startAction）。
 func (c *ClientFactory) StartAction(name string) error {
 	if err := c.ensure(); err != nil {
 		return err
 	}
 	return StartAction(name)
+}
+
+// SetActionParam 设置当前动作参数（对齐 JS setActionParam）。
+func (c *ClientFactory) SetActionParam(name string, value interface{}) (string, error) {
+	if err := c.ensure(); err != nil {
+		return "", err
+	}
+	return SetActionParam(name, value)
 }
 
 // CurrentAction 查询当前动作名（对齐 JS currentAction）。

@@ -178,6 +178,28 @@ func StartAction(name string) error {
 	return err
 }
 
+// SetActionParam 设置当前动作参数（action.setParam；默认发往 Command MP）。
+// name 为 HQML focus-target（如 angleLock / lineWidth）；value 为下标或选项文案。
+func SetActionParam(name string, value interface{}) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", fmt.Errorf("empty action param name")
+	}
+	// nil 先拦，避免 fmt.Sprint(nil) 变成 "<nil>"。
+	if value == nil {
+		return "", fmt.Errorf("empty action param value")
+	}
+	v := strings.TrimSpace(fmt.Sprint(value))
+	if v == "" {
+		return "", fmt.Errorf("empty action param value")
+	}
+	return CmdletLine(
+		"action.setParam",
+		KvToken("name", name),
+		KvToken("value", v),
+	)
+}
+
 // CurrentAction 查询当前动作名（action.current）。
 func CurrentAction() (string, error) {
 	return Cmdlet("action.current")
