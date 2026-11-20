@@ -1,4 +1,6 @@
-// Package pcb 的本机 Arrow Flight IPC 客户端（P6d 权威路径）。
+//go:build !wasip1
+
+// Package hqeda 的本机 Arrow Flight IPC 客户端（P6d 权威路径）。
 //
 // 产品约定：只使用逻辑端点名（默认 hqpcb-svc），映射到本机 domain socket：
 //
