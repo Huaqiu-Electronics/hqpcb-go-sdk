@@ -316,6 +316,14 @@ func (c *ClientFactory) SetActionParam(name string, value interface{}) (string, 
 	return SetActionParam(name, value)
 }
 
+// ChooseFile 弹出工程打开对话框（对齐 JS chooseFile）。
+func (c *ClientFactory) ChooseFile() (string, error) {
+	if err := c.ensure(); err != nil {
+		return "", err
+	}
+	return ChooseFile()
+}
+
 // CurrentAction 查询当前动作名（对齐 JS currentAction）。
 func (c *ClientFactory) CurrentAction() (string, error) {
 	if err := c.ensure(); err != nil {

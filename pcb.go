@@ -200,6 +200,19 @@ func SetActionParam(name string, value interface{}) (string, error) {
 	)
 }
 
+// ChooseFile 弹出工程打开对话框，返回所选绝对路径（不自动开板）。
+func ChooseFile() (string, error) {
+	out, err := Cmdlet("file.choose")
+	if err != nil {
+		return "", err
+	}
+	out = strings.TrimSpace(out)
+	if out == "" {
+		return "", fmt.Errorf("chooseFile cancelled")
+	}
+	return out, nil
+}
+
 // CurrentAction 查询当前动作名（action.current）。
 func CurrentAction() (string, error) {
 	return Cmdlet("action.current")
