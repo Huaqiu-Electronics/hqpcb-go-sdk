@@ -5,7 +5,7 @@
 //
 // 原始桥：Log / Cmdlet / Query。
 // 类型化 cmdlet：Workspace* / Project* / Script* / Plugins / Window* / Help / LoadPlugin
-//（见 workspace.go、project.go、script.go、app.go）；
+// （见 workspace.go、project.go、script.go、app.go）；
 // Query 结构化：QueryTableResult / QueryMaps / QueryTable.Cell|RowMap|Maps（见 query.go）；
 // 常用 runtime 表：QueryPlugins / QueryLayers / QueryViewOptions / QueryCmdletHist /
 // QueryCmdHist / QueryConfigItems（见 query_rt.go）；
@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -205,6 +206,53 @@ func MouseDBClick(x, y float64) error {
 func CancelAction() error {
 	_, err := Cmdlet("action.cancel")
 	return err
+}
+
+// PickAt 文档 mm 拾取并选中（rasternext.pick），返回命中业务 id。
+func PickAt(x, y float64) ([]int64, error) {
+	out, err := Cmdlet(fmt.Sprintf("rasternext.pick %g %g", x, y))
+	if err != nil {
+		return nil, err
+	}
+	const prefix = "ids="
+	idx := strings.Index(out, prefix)
+	if idx < 0 {
+		return nil, nil
+	}
+	raw := strings.TrimSpace(out[idx+len(prefix):])
+	if i := strings.IndexAny(raw, " \t\r\n"); i >= 0 {
+		raw = raw[:i]
+	}
+	if raw == "" {
+		return nil, nil
+	}
+	parts := strings.Split(raw, ",")
+	ids := make([]int64, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		n, e := strconv.ParseInt(p, 10, 64)
+		if e != nil || n <= 0 {
+			continue
+		}
+		ids = append(ids, n)
+	}
+	return ids, nil
+}
+
+// HideItems 隐藏对象（rasternext.hide_items → setStaticObjectsVisibleByIds）。
+// ids 为空时隐藏当前 selection。
+func HideItems(ids []int64) (string, error) {
+	if len(ids) == 0 {
+		return Cmdlet("rasternext.hide_items selection")
+	}
+	parts := make([]string, 0, len(ids))
+	for _, id := range ids {
+		parts = append(parts, strconv.FormatInt(id, 10))
+	}
+	return Cmdlet("rasternext.hide_items " + strings.Join(parts, ","))
 }
 
 // Query 执行一条宿主 SQL（与 runtime.query / telnet 同源策略），返回 JSON 文本。

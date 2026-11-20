@@ -347,3 +347,19 @@ func (c *ClientFactory) CancelAction() error {
 	}
 	return CancelAction()
 }
+
+// PickAt 文档 mm 拾取并选中（对齐 JS pickAt）。
+func (c *ClientFactory) PickAt(x, y float64) ([]int64, error) {
+	if err := c.ensure(); err != nil {
+		return nil, err
+	}
+	return PickAt(x, y)
+}
+
+// HideItems 隐藏对象（对齐 JS hideItems；内部 setStaticObjectsVisibleByIds）。
+func (c *ClientFactory) HideItems(ids []int64) (string, error) {
+	if err := c.ensure(); err != nil {
+		return "", err
+	}
+	return HideItems(ids)
+}
