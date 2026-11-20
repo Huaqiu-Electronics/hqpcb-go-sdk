@@ -101,7 +101,12 @@ func callFor(op string, args map[string]interface{}, maxWait time.Duration) (str
 }
 
 // Log 将消息发往宿主输出（不经过 cmdlet）。
-func Log(msg string) {
+// 有额外参数时按 fmt.Sprintf(format, args...) 格式化；无参则原样输出 format。
+func Log(format string, args ...interface{}) {
+	msg := format
+	if len(args) > 0 {
+		msg = fmt.Sprintf(format, args...)
+	}
 	_, _ = call("log", map[string]interface{}{"message": msg})
 }
 
