@@ -224,6 +224,16 @@ func MouseMoveEx(x0, y0, x1, y1 float64, steps int) error {
 	return err
 }
 
+// MouseBoxSelect 对角框选拖拽（action.input box-select）。
+// steps<=0 时按 8 步插值。
+func MouseBoxSelect(x0, y0, x1, y1 float64, steps int) error {
+	if steps <= 0 {
+		steps = 8
+	}
+	_, err := Cmdlet(fmt.Sprintf("action.input box-select %g %g %g %g %d", x0, y0, x1, y1, steps))
+	return err
+}
+
 // MouseMove 移动指针到纸面坐标（action.input move）。
 func MouseMove(x, y float64) error {
 	_, err := Cmdlet(fmt.Sprintf("action.input move %g %g", x, y))
@@ -239,6 +249,18 @@ func MouseClick(x, y float64) error {
 // MouseDBClick 双击纸面坐标（action.input dbclick）。
 func MouseDBClick(x, y float64) error {
 	_, err := Cmdlet(fmt.Sprintf("action.input dbclick %g %g", x, y))
+	return err
+}
+
+// MousePress 左键按下（action.input press）。
+func MousePress(x, y float64) error {
+	_, err := Cmdlet(fmt.Sprintf("action.input press %g %g", x, y))
+	return err
+}
+
+// MouseRelease 左键抬起（action.input release）。
+func MouseRelease(x, y float64) error {
+	_, err := Cmdlet(fmt.Sprintf("action.input release %g %g", x, y))
 	return err
 }
 

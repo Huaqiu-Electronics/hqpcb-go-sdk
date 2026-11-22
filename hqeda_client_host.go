@@ -340,6 +340,14 @@ func (c *ClientFactory) MouseMoveEx(x0, y0, x1, y1 float64, steps int) error {
 	return MouseMoveEx(x0, y0, x1, y1, steps)
 }
 
+// MouseBoxSelect 对角框选拖拽（对齐 JS mouseBoxSelect）。
+func (c *ClientFactory) MouseBoxSelect(x0, y0, x1, y1 float64, steps int) error {
+	if err := c.ensure(); err != nil {
+		return err
+	}
+	return MouseBoxSelect(x0, y0, x1, y1, steps)
+}
+
 // MouseMove 移动指针（对齐 JS mouseMove）。
 func (c *ClientFactory) MouseMove(x, y float64) error {
 	if err := c.ensure(); err != nil {
@@ -362,6 +370,22 @@ func (c *ClientFactory) MouseDBClick(x, y float64) error {
 		return err
 	}
 	return MouseDBClick(x, y)
+}
+
+// MousePress 左键按下（对齐 JS mousePress）。
+func (c *ClientFactory) MousePress(x, y float64) error {
+	if err := c.ensure(); err != nil {
+		return err
+	}
+	return MousePress(x, y)
+}
+
+// MouseRelease 左键抬起（对齐 JS mouseRelease）。
+func (c *ClientFactory) MouseRelease(x, y float64) error {
+	if err := c.ensure(); err != nil {
+		return err
+	}
+	return MouseRelease(x, y)
 }
 
 // CancelAction 取消当前动作（对齐 JS cancelAction）。
