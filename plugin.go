@@ -249,6 +249,7 @@ type inboxEnvelope struct {
 //
 // path 为 inbox 下 json 绝对路径；id 为无扩展名的事件 id。
 // 成功处理返回 true；半残/解析失败返回 false（保留文件供重试）。
+// 须在 dispatch 前摘除请求文件，否则 handler 内 call→pumpInboxOnce 会重入同一事件（如 onLoad→Log 死循环）。
 func processInboxFile(path, id string) bool {
 	data, err := os.ReadFile(path)
 	// 空文件视为宿主尚未写完，本轮跳过。
@@ -259,6 +260,11 @@ func processInboxFile(path, id string) bool {
 	if err := json.Unmarshal(data, &env); err != nil {
 		return false
 	}
+	// 先摘除再分派：防止嵌套泵送再次读到本文件。
+	if err := os.Remove(path); err != nil {
+		// 已被并发/重入泵送摘走则跳过。
+		return false
+	}
 	result, callErr := dispatchInbox(env.Op, env.Args)
 	ack := map[string]interface{}{"ok": callErr == nil, "result": result}
 	if callErr != nil {
@@ -266,7 +272,6 @@ func processInboxFile(path, id string) bool {
 		ack["ok"] = false
 	}
 	writeInboxAck(id, ack)
-	_ = os.Remove(path)
 	return true
 }
 
