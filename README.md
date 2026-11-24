@@ -41,6 +41,24 @@ func main() {
 import hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
 ```
 
+## 常驻插件（`runtime: go_wasm`）
+
+宿主设置 `PCB_PLUGIN_MODE=1` 时，Guest `main` 应进入 `hqeda.Run()` 事件循环：
+
+```go
+hqeda.OnLifecycle("onWndInit", func() error {
+    return hqeda.RegisterCommand("my.cmd", "Short", "Full")
+})
+hqeda.HandleCommand("my.cmd", func(string) error { return nil })
+hqeda.HandleAction("my_action", myHandler)
+hqeda.OnLifecycle("onWorkspaceInit", func() error {
+    return hqeda.RegisterAction("my_action", "Short", "Full", "Display")
+})
+hqeda.Run()
+```
+
+画布测量叠加：`ApplyMeasurePrev` / `ClearMeasurePrev`。样板：仓库内 `Plugins/Buildins/PCB/Ruler`。
+
 ## 文档
 
 见 PCB_V5 仓库：`docs/07-插件与扩展/01-宿主与协议/GoScriptPlatform.md`、`sdk/README.md`。
