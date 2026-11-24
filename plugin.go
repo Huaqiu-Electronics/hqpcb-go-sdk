@@ -105,6 +105,14 @@ func ShowMpPanel(bundleId string) (string, error) {
 	return call("show_mp_panel", map[string]interface{}{"bundleId": bundleId})
 }
 
+// CloseMpPanel 关闭由 ShowMpPanel 打开的 HQML 面板。
+//
+// dialogId 为 ShowMpPanel 返回值；空串时宿主关闭本插件最近一次打开的面板。
+func CloseMpPanel(dialogId string) error {
+	_, err := call("close_mp_panel", map[string]interface{}{"dialogId": strings.TrimSpace(dialogId)})
+	return err
+}
+
 // PostDataBus 向宿主数据总线投递 topic。
 //
 // topic 为总线主题；payload 可 nil（视为空对象）。失败返回桥错误。
