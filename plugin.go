@@ -128,6 +128,47 @@ func PostDataBus(topic string, payload map[string]interface{}) error {
 	return err
 }
 
+// DataEventHandler 处理宿主扇出的数据总线事件（SubscribeDataBus）。
+type DataEventHandler func(topic string, payload map[string]interface{}) error
+
+// RenderPatchHandler 处理 RN RenderPatchHook 摘要（SubscribeRenderPatch）。
+type RenderPatchHandler func(summary map[string]interface{}) error
+
+var (
+	dataEventHandlers   = map[string]DataEventHandler{}
+	renderPatchHandler  RenderPatchHandler
+)
+
+// SubscribeDataBus 订阅宿主 DataBus 主题（如 pcb.data.scene.patch）。
+//
+// 宿主经 inbox op data.event 投递；须在 PluginMode 下调用。
+func SubscribeDataBus(topic string, h DataEventHandler) error {
+	topic = strings.TrimSpace(topic)
+	if topic == "" || h == nil {
+		return fmt.Errorf("SubscribeDataBus: topic and handler required")
+	}
+	dataEventHandlers[topic] = h
+	_, err := call("subscribe_data_bus", map[string]interface{}{"topic": topic})
+	return err
+}
+
+// SubscribeRenderPatch 订阅 RasterNext 补丁 Hook（ChangeDispatcher → RenderPatchHook）。
+//
+// 宿主经 inbox op render.patch 投递可 JSON 摘要；SSE 由插件自行转推 hqpcb-web。
+func SubscribeRenderPatch(h RenderPatchHandler) error {
+	if h == nil {
+		return fmt.Errorf("SubscribeRenderPatch: handler required")
+	}
+	renderPatchHandler = h
+	_, err := call("subscribe_render_patch", map[string]interface{}{})
+	return err
+}
+
+// ProjectPath 返回当前工程绝对路径。
+func ProjectPath() (string, error) {
+	return call("project_path", map[string]interface{}{})
+}
+
 // ShowMessage 显示状态栏 / 提示消息。
 //
 // text 为展示文案；level 为严重级别（与宿主约定，常用 0）；timeoutMs 为超时毫秒。
@@ -417,6 +458,25 @@ func dispatchInbox(op string, args map[string]interface{}) (string, error) {
 			return "ok", nil
 		}
 		if err := h(args); err != nil {
+			return "", err
+		}
+		return "ok", nil
+	case op == "data.event":
+		topic, _ := args["topic"].(string)
+		topic = strings.TrimSpace(topic)
+		h := dataEventHandlers[topic]
+		if h == nil {
+			return "ok", nil
+		}
+		if err := h(topic, args); err != nil {
+			return "", err
+		}
+		return "ok", nil
+	case op == "render.patch":
+		if renderPatchHandler == nil {
+			return "ok", nil
+		}
+		if err := renderPatchHandler(args); err != nil {
 			return "", err
 		}
 		return "ok", nil
