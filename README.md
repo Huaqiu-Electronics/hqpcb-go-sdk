@@ -49,12 +49,26 @@ import hqeda "github.com/Huaqiu-Electronics/hqpcb-go-sdk"
 hqeda.OnLifecycle("onWndInit", func() error {
     return hqeda.RegisterCommand("my.cmd", "Short", "Full")
 })
-hqeda.HandleCommand("my.cmd", func(string) error { return nil })
+hqeda.HandleCommand("my.cmd", func(name string, argv []string) (string, error) {
+    return "ok", nil
+})
 hqeda.HandleAction("my_action", myHandler)
 hqeda.OnLifecycle("onWorkspaceInit", func() error {
     return hqeda.RegisterAction("my_action", "Short", "Full", "Display")
 })
 hqeda.Run()
+```
+
+可撤销设计命令（经宿主 `CommandService::executeAndPush`）：
+
+```go
+err := hqeda.PushCommand("My edit", func() error {
+    // do / redo
+    return nil
+}, func() error {
+    // undo
+    return nil
+})
 ```
 
 画布测量叠加：`ApplyMeasurePrev` / `ClearMeasurePrev`。样板：仓库内 `Plugins/Buildins/PCB/Ruler`。

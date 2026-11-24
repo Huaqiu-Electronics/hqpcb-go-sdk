@@ -72,6 +72,10 @@ func callFor(op string, args map[string]interface{}, maxWait time.Duration) (str
 	}
 	deadline := time.Now().Add(maxWait)
 	for time.Now().Before(deadline) {
+		// 常驻插件：等待宿主 resp 时仍泵送 inbox，避免 command_push→command.do 嵌套死锁。
+		if PluginMode() {
+			pumpInboxOnce()
+		}
 		data, err := os.ReadFile(respPath)
 		if err != nil {
 			time.Sleep(10 * time.Millisecond)

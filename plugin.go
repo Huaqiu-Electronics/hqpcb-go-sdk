@@ -19,11 +19,21 @@ type LifecycleHandler func() error
 
 // CommandHandler 处理宿主命令回调（如菜单 builtin.ruler.open）。
 //
-// name 为登记时的命令 id，与 RegisterCommand 的 name 一致。
-type CommandHandler func(name string) error
+// name 为登记时的命令 id，与 RegisterCommand 的 name 一致；
+// argv 为 cmdlet 参数（不含命令名本身）；result 写入 inbox ack（可空）。
+type CommandHandler func(name string, argv []string) (result string, err error)
+
+// CommandBody 是可撤销命令的一次 do 或 undo 体（失败返回 error）。
+type CommandBody func() error
 
 // HqcHandler 处理小程序 hqc 方法（args 为 JSON 对象，可能为空 map）。
 type HqcHandler func(args map[string]interface{}) error
+
+// commandBodyPair 缓存 PushCommand 登记的 do/undo，供宿主 inbox 回调用。
+type commandBodyPair struct {
+	do   CommandBody
+	undo CommandBody
+}
 
 var (
 	// lifecycleHandlers 以短名（如 onWndInit）索引生命周期回调。
@@ -32,6 +42,8 @@ var (
 	commandHandlers = map[string]CommandHandler{}
 	// hqcHandlers 以 hqc 方法名（如 applyOptions）索引面板回调。
 	hqcHandlers = map[string]HqcHandler{}
+	// commandBodies 以 token 索引 PushCommand 的 do/undo（存活至进程结束 / 显式覆盖）。
+	commandBodies = map[string]*commandBodyPair{}
 	// pluginStop 为 true 时 Run 退出事件循环。
 	pluginStop = false
 )
@@ -51,6 +63,7 @@ func OnLifecycle(name string, h LifecycleHandler) {
 // HandleCommand 登记本地命令处理（在收到 command.invoke 时调用）。
 //
 // name 须与随后 RegisterCommand 使用的 id 一致；h 为 nil 则忽略。
+// 须先于 RegisterCommand 登记，以便菜单 / cmdlet 到达时即可分派。
 func HandleCommand(name string, h CommandHandler) {
 	name = strings.TrimSpace(name)
 	if name == "" || h == nil {
@@ -127,9 +140,57 @@ func ExecuteCmdletLine(line string) error {
 	return err
 }
 
+// PushCommand 将访客 do/undo 压入宿主 CommandService 撤销栈。
+//
+// displayName 为撤销栈显示名；doBody / undoBody 均不可 nil。
+// 宿主 execute 时经 inbox command.do 回调 doBody；undo/redo 同理走 command.undo / 再次 command.do。
+// 调用方须处于 PluginMode；嵌套回调依赖 callFor 内的 pumpInboxOnce。
+func PushCommand(displayName string, doBody, undoBody CommandBody) error {
+	displayName = strings.TrimSpace(displayName)
+	if displayName == "" {
+		return fmt.Errorf("PushCommand: empty displayName")
+	}
+	if doBody == nil || undoBody == nil {
+		return fmt.Errorf("PushCommand: do/undo body required")
+	}
+	if !PluginMode() {
+		return fmt.Errorf("PushCommand: requires plugin mode")
+	}
+	token := fmt.Sprintf("%d", time.Now().UnixNano())
+	commandBodies[token] = &commandBodyPair{do: doBody, undo: undoBody}
+	_, err := call("command_push", map[string]interface{}{
+		"displayName": displayName,
+		"token":       token,
+	})
+	return err
+}
+
 // PluginMode 报告当前是否处于常驻插件模式（PCB_PLUGIN_MODE=1）。
 func PluginMode() bool {
 	return os.Getenv("PCB_PLUGIN_MODE") == "1"
+}
+
+// pumpInboxOnce 处理当前 inbox 中至多一轮事件（供 callFor 嵌套泵送）。
+//
+// 无待处理文件时立即返回；目录不可读时静默跳过。
+func pumpInboxOnce() {
+	root, err := hostDir()
+	if err != nil {
+		return
+	}
+	inbox := filepath.Join(root, "inbox")
+	entries, err := os.ReadDir(inbox)
+	if err != nil {
+		return
+	}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		path := filepath.Join(inbox, e.Name())
+		id := strings.TrimSuffix(e.Name(), ".json")
+		_ = processInboxFile(path, id)
+	}
 }
 
 // Run 进入常驻事件循环，直到收到 lifecycle.shutdown。
@@ -255,10 +316,19 @@ func dispatchInbox(op string, args map[string]interface{}) (string, error) {
 		if h == nil {
 			return "", fmt.Errorf("no command handler: %s", name)
 		}
-		if err := h(name); err != nil {
+		argv := parseCommandArgv(args)
+		result, err := h(name, argv)
+		if err != nil {
 			return "", err
 		}
-		return "ok", nil
+		if strings.TrimSpace(result) == "" {
+			return "ok", nil
+		}
+		return result, nil
+	case op == "command.do":
+		return runCommandBody(args, true)
+	case op == "command.undo":
+		return runCommandBody(args, false)
 	case op == "action.event":
 		return dispatchActionEvent(args)
 	case op == "action.stop":
@@ -277,4 +347,59 @@ func dispatchInbox(op string, args map[string]interface{}) (string, error) {
 	default:
 		return "", fmt.Errorf("unknown inbox op: %s", op)
 	}
+}
+
+// parseCommandArgv 从 command.invoke args 提取字符串参数列表。
+//
+// 支持 JSON 数组 argv，或缺失时返回空切片。
+func parseCommandArgv(args map[string]interface{}) []string {
+	if args == nil {
+		return nil
+	}
+	raw, ok := args["argv"]
+	if !ok || raw == nil {
+		return nil
+	}
+	switch v := raw.(type) {
+	case []interface{}:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			out = append(out, strings.TrimSpace(fmt.Sprint(item)))
+		}
+		return out
+	case []string:
+		return append([]string(nil), v...)
+	default:
+		return nil
+	}
+}
+
+// runCommandBody 按 token 执行 PushCommand 登记的 do（doOp=true）或 undo。
+func runCommandBody(args map[string]interface{}, doOp bool) (string, error) {
+	token, _ := args["token"].(string)
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return "", fmt.Errorf("command body: empty token")
+	}
+	pair := commandBodies[token]
+	if pair == nil {
+		return "", fmt.Errorf("command body: unknown token")
+	}
+	var body CommandBody
+	if doOp {
+		body = pair.do
+	} else {
+		body = pair.undo
+	}
+	if body == nil {
+		kind := "undo"
+		if doOp {
+			kind = "do"
+		}
+		return "", fmt.Errorf("command body: missing %s", kind)
+	}
+	if err := body(); err != nil {
+		return "", err
+	}
+	return "ok", nil
 }
