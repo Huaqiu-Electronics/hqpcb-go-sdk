@@ -1,3 +1,5 @@
+//go:build !wasip1
+
 // Package pcb 的本机 Arrow IPC Streaming 客户端骨架（P1b：hello/ping/caps）。
 //
 // Deprecated: P6d 起请改用 FlightIPC（flight_IPC.go）与生成 API（pcb_api_gen.go）。

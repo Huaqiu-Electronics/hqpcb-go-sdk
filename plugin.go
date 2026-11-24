@@ -173,6 +173,7 @@ func PluginMode() bool {
 // pumpInboxOnce 处理当前 inbox 中至多一轮事件（供 callFor 嵌套泵送）。
 //
 // 无待处理文件时立即返回；目录不可读时静默跳过。
+// 嵌套于 host call 时跳过 MouseMove，避免橡皮筋 ApplyMeasurePrev 递归叠栈。
 func pumpInboxOnce() {
 	root, err := hostDir()
 	if err != nil {
@@ -183,12 +184,8 @@ func pumpInboxOnce() {
 	if err != nil {
 		return
 	}
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
-			continue
-		}
-		path := filepath.Join(inbox, e.Name())
-		id := strings.TrimSuffix(e.Name(), ".json")
+	for _, path := range selectInboxPaths(inbox, entries, hostCallDepth > 0) {
+		id := strings.TrimSuffix(filepath.Base(path), ".json")
 		_ = processInboxFile(path, id)
 	}
 }
@@ -220,13 +217,9 @@ func Run() {
 			continue
 		}
 		handled := false
-		for _, e := range entries {
-			if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
-				continue
-			}
-			path := filepath.Join(inbox, e.Name())
-			// 文件名（无扩展名）即事件 id，与宿主 postInbox 约定一致。
-			id := strings.TrimSuffix(e.Name(), ".json")
+		// 外层循环合并积压 MouseMove，只处理各动作最新一条。
+		for _, path := range selectInboxPaths(inbox, entries, false) {
+			id := strings.TrimSuffix(filepath.Base(path), ".json")
 			if processInboxFile(path, id) {
 				handled = true
 			}
@@ -235,6 +228,76 @@ func Run() {
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
+}
+
+// selectInboxPaths 选出本轮应处理的 inbox 文件路径。
+//
+// skipMouseMove 为 true 时保留 MouseMove 文件不动（留给外层 Run）。
+// 否则同一动作只保留时间戳最新的一条 MouseMove，并删除更旧积压。
+func selectInboxPaths(inbox string, entries []os.DirEntry, skipMouseMove bool) []string {
+	type movePick struct {
+		path string
+		name string
+	}
+	var out []string
+	latestMove := map[string]movePick{}
+	var staleMoves []string
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		path := filepath.Join(inbox, e.Name())
+		actionName, isMove := peekActionMouseMove(path)
+		if !isMove {
+			out = append(out, path)
+			continue
+		}
+		if skipMouseMove {
+			// 嵌套泵送：不碰高频移动，避免 ApplyMeasurePrev→call→pump 叠栈。
+			continue
+		}
+		if prev, ok := latestMove[actionName]; ok {
+			// 文件名以毫秒时间戳开头；字典序更大者更新。
+			if filepath.Base(path) > filepath.Base(prev.path) {
+				staleMoves = append(staleMoves, prev.path)
+				latestMove[actionName] = movePick{path: path, name: actionName}
+			} else {
+				staleMoves = append(staleMoves, path)
+			}
+		} else {
+			latestMove[actionName] = movePick{path: path, name: actionName}
+		}
+	}
+	for _, p := range staleMoves {
+		_ = os.Remove(p)
+	}
+	for _, m := range latestMove {
+		out = append(out, m.path)
+	}
+	return out
+}
+
+// peekActionMouseMove 判断 inbox 文件是否为 action.event 的 MouseMove。
+//
+// 返回动作 name 与是否为 MouseMove；半残/非该类型时 isMove=false。
+func peekActionMouseMove(path string) (actionName string, isMove bool) {
+	data, err := os.ReadFile(path)
+	if err != nil || len(strings.TrimSpace(string(data))) == 0 {
+		return "", false
+	}
+	var env inboxEnvelope
+	if err := json.Unmarshal(data, &env); err != nil {
+		return "", false
+	}
+	if env.Op != "action.event" || env.Args == nil {
+		return "", false
+	}
+	typ, _ := env.Args["type"].(string)
+	if !strings.EqualFold(strings.TrimSpace(typ), "MouseMove") {
+		return "", false
+	}
+	name, _ := env.Args["name"].(string)
+	return strings.TrimSpace(name), true
 }
 
 // inboxEnvelope 是 Host→Guest 单条 inbox 事件的 JSON 形状。

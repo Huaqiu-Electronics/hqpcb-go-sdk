@@ -46,6 +46,11 @@ func hostDir() (string, error) {
 	return dir, nil
 }
 
+// hostCallDepth 统计嵌套中的 Guest→Host call 层数。
+//
+// call 等待 resp 时会泵 inbox；深度>0 时跳过 MouseMove，避免 ApplyMeasurePrev 重入叠栈卡死。
+var hostCallDepth int
+
 // call 发送一次 host 请求并等待响应（轮询，最长约 120s）。
 func call(op string, args map[string]interface{}) (string, error) {
 	return callFor(op, args, 120*time.Second)
@@ -70,6 +75,8 @@ func callFor(op string, args map[string]interface{}, maxWait time.Duration) (str
 	if maxWait <= 0 {
 		maxWait = 120 * time.Second
 	}
+	hostCallDepth++
+	defer func() { hostCallDepth-- }()
 	deadline := time.Now().Add(maxWait)
 	for time.Now().Before(deadline) {
 		// 常驻插件：等待宿主 resp 时仍泵送 inbox，避免 command_push→command.do 嵌套死锁。
