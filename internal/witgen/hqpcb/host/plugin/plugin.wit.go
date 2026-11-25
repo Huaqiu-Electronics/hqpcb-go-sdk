@@ -4,5 +4,5 @@
 
 // Package plugin represents the world "hqpcb:host/plugin@0.1.0".
 //
-// Guest world: import host op + wasi:cli (TinyGo wasip2 runtime needs cli imports).
+// Guest world: import op + host-pull; export guest-events + wasi:cli/run.
 package plugin

@@ -1,7 +1,9 @@
 //go:build witbridge
 
-// WIT 双轨：Guest 经 hqpcb:host/op import 调宿主（需 wasip2 + wac plug adapter）。
+// WIT 双轨：Guest 经 hqpcb:host/op import 调宿主（需 wasip2 + pcb-wit-run / wac）。
 // 构建：tinygo build -tags witbridge -target=wasip2-hqpcb.json …
+//
+// 全部 Guest→Host 走同步 WIT；嵌套 Host→Guest 经 RPC kind=guest → guest-events。
 package hqeda
 
 import (
@@ -19,6 +21,10 @@ func call(opName string, args map[string]interface{}) (string, error) {
 
 func callFor(opName string, args map[string]interface{}, maxWait time.Duration) (string, error) {
 	_ = maxWait // sync WIT；超时由宿主侧负责
+	return callWitSync(opName, args)
+}
+
+func callWitSync(opName string, args map[string]interface{}) (string, error) {
 	hostCallDepth++
 	defer func() { hostCallDepth-- }()
 

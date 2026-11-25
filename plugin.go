@@ -1,8 +1,10 @@
 // 常驻 Go WASM 插件：生命周期事件循环 + 命令 / 面板 / 数据总线 API。
 //
 // 仅当宿主设置 PCB_PLUGIN_MODE=1（GoWasmResident）时 Run 才有意义；
-// 普通 script.go.run 一次性脚本勿调用 Run。Host→Guest 走 inbox/inbox_ack，
-// Guest→Host 仍走 req/resp（与 pcb.go 的 call 相同）。
+// 普通 script.go.run 一次性脚本勿调用 Run。
+//
+// witbridge：Host→Guest 走 host-pull（嵌套 guest-events），Guest→Host 走 WIT op；
+// 非 witbridge：Host→Guest 走 inbox/inbox_ack，Guest→Host 走 req/resp。
 package hqeda
 
 import (
@@ -219,11 +221,15 @@ func PluginMode() bool {
 	return os.Getenv("PCB_PLUGIN_MODE") == "1"
 }
 
-// pumpInboxOnce 处理当前 inbox 中至多一轮事件（供 callFor 嵌套泵送）。
+// pumpInboxOnce 处理当前一轮 Host→Guest 事件（供 callFor 嵌套泵送）。
 //
-// 无待处理文件时立即返回；目录不可读时静默跳过。
+// witbridge：只 poll host-pull；非 witbridge：扫 inbox 文件。
 // 嵌套于 host call 时跳过 MouseMove，避免橡皮筋 ApplyMeasurePrev 递归叠栈。
 func pumpInboxOnce() {
+	_ = pumpWitPullOnce()
+	if !inboxFileBridgeEnabled() {
+		return
+	}
 	root, err := hostDir()
 	if err != nil {
 		return
@@ -253,12 +259,22 @@ func Run() {
 		Log("pcb: %v", err)
 		return
 	}
-	// 确保 Host→Guest 目录存在（宿主通常已建，Guest 再兜底）。
 	inbox := filepath.Join(root, "inbox")
-	_ = os.MkdirAll(inbox, 0o700)
-	_ = os.MkdirAll(filepath.Join(root, "inbox_ack"), 0o700)
+	// 非 witbridge 才依赖 inbox 文件；witbridge 仅 host-pull。
+	if inboxFileBridgeEnabled() {
+		_ = os.MkdirAll(inbox, 0o700)
+		_ = os.MkdirAll(filepath.Join(root, "inbox_ack"), 0o700)
+	}
 
 	for !pluginStop {
+		if pumpWitPullOnce() {
+			continue
+		}
+		if !inboxFileBridgeEnabled() {
+			// witbridge：队列空则短睡再 poll host-pull。
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
 		entries, err := os.ReadDir(inbox)
 		if err != nil {
 			// 目录瞬态不可读时退避，避免忙等。
