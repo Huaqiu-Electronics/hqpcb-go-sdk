@@ -1,4 +1,4 @@
-//go:build !wasip1
+//go:build !tinygo.wasm
 
 // Package pcb 的本机 Arrow IPC Streaming 客户端骨架（P1b：hello/ping/caps）。
 //

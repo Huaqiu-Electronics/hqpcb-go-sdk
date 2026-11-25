@@ -2,6 +2,8 @@
 
 HQ PCB（PCB_V5）Go SDK：Guest（TinyGo WASI / `PCB_HOST_DIR` 文件桥）与本机 Arrow Flight IPC 客户端。
 
+桌面中期宿主契约（尚未接线）：[`sdk/wit/hqpcb-host.wit`](../../wit/hqpcb-host.wit)；说明见 [HqpcbHostWit.md](../../../docs/07-插件与扩展/01-宿主与协议/HqpcbHostWit.md)。
+
 ## Install
 
 ```bash

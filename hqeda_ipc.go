@@ -1,4 +1,4 @@
-//go:build !wasip1
+//go:build !tinygo.wasm
 
 // Package hqeda 的本机 Arrow Flight IPC 客户端（P6d 权威路径）。
 //

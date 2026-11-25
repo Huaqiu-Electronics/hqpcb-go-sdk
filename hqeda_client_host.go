@@ -1,6 +1,7 @@
-//go:build wasip1
+//go:build tinygo.wasm
 
 // 脚本 / WASI 模式 ClientFactory：连接走 PCB_HOST_DIR；后续方法名对齐 Flight ClientFactory。
+// tinygo.wasm 覆盖 wasip1 与 wasip2（wasip2 的 GOOS=linux，不能再仅靠 wasip1 标签）。
 package hqeda
 
 import (
