@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	github.com/apache/arrow-go/v18 v18.4.1
+	go.bytecodealliance.org/cm v0.2.2
 	google.golang.org/grpc v1.75.0
 )
 

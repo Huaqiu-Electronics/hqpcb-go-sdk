@@ -1,7 +1,8 @@
 // Package hqeda 是 PCB_V5 TinyGo/WASI 脚本的宿主桥接 SDK。
 //
-// 通过共享目录上的 JSON 请求/响应与桌面宿主通信；不直接访问设计内核。
-// 环境变量 PCB_HOST_DIR 指向宿主创建的临时目录（含 req/ 与 resp/）。
+// 缺省（无 -tags witbridge）：共享目录 JSON 请求/响应（PCB_HOST_DIR req/resp）。
+// witbridge：经 hqpcb:host/op WIT import（需 wasip2 + adapter 组合或嵌入 linker）。
+// 不直接访问设计内核。
 //
 // 原始桥：Log / Cmdlet / Query。
 // 类型化 cmdlet：Workspace* / Project* / Script* / Plugins / Window* / Help / LoadPlugin
@@ -13,29 +14,12 @@
 package hqeda
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 )
-
-// hostReq 是写入 req/ 的请求体。
-type hostReq struct {
-	Op   string                 `json:"op"`
-	Args map[string]interface{} `json:"args"`
-}
-
-// hostResp 是宿主写回 resp/ 的响应体。
-type hostResp struct {
-	OK     bool   `json:"ok"`
-	Result string `json:"result"`
-	Error  string `json:"error"`
-}
 
 // hostDir 返回宿主约定的共享根目录。
 func hostDir() (string, error) {
@@ -50,66 +34,6 @@ func hostDir() (string, error) {
 //
 // call 等待 resp 时会泵 inbox；深度>0 时跳过 MouseMove，避免 ApplyMeasurePrev 重入叠栈卡死。
 var hostCallDepth int
-
-// call 发送一次 host 请求并等待响应（轮询，最长约 120s）。
-func call(op string, args map[string]interface{}) (string, error) {
-	return callFor(op, args, 120*time.Second)
-}
-
-// callFor 同 call，但可指定最长等待时间（向导 wait.* 用更长超时）。
-func callFor(op string, args map[string]interface{}, maxWait time.Duration) (string, error) {
-	root, err := hostDir()
-	if err != nil {
-		return "", err
-	}
-	id := fmt.Sprintf("%d", time.Now().UnixNano())
-	reqPath := filepath.Join(root, "req", id+".json")
-	respPath := filepath.Join(root, "resp", id+".json")
-	body, err := json.Marshal(hostReq{Op: op, Args: args})
-	if err != nil {
-		return "", err
-	}
-	if err := os.WriteFile(reqPath, body, 0o600); err != nil {
-		return "", err
-	}
-	if maxWait <= 0 {
-		maxWait = 120 * time.Second
-	}
-	hostCallDepth++
-	defer func() { hostCallDepth-- }()
-	deadline := time.Now().Add(maxWait)
-	for time.Now().Before(deadline) {
-		// 常驻插件：等待宿主 resp 时仍泵送 inbox，避免 command_push→command.do 嵌套死锁。
-		if PluginMode() {
-			pumpInboxOnce()
-		}
-		data, err := os.ReadFile(respPath)
-		if err != nil {
-			time.Sleep(10 * time.Millisecond)
-			continue
-		}
-		// 空/半残响应：等宿主 *.part rename 完成后再解析。
-		if len(bytes.TrimSpace(data)) == 0 {
-			time.Sleep(10 * time.Millisecond)
-			continue
-		}
-		var resp hostResp
-		if err := json.Unmarshal(data, &resp); err != nil {
-			time.Sleep(10 * time.Millisecond)
-			continue
-		}
-		_ = os.Remove(reqPath)
-		_ = os.Remove(respPath)
-		if !resp.OK {
-			if resp.Error == "" {
-				return "", errors.New("pcb: host call failed")
-			}
-			return "", errors.New(resp.Error)
-		}
-		return resp.Result, nil
-	}
-	return "", errors.New("pcb: host call timeout")
-}
 
 // Log 将消息发往宿主输出（不经过 cmdlet）。
 // 有额外参数时按 fmt.Sprintf(format, args...) 格式化；无参则原样输出 format。
